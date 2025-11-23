@@ -16,12 +16,18 @@ def sinkhorn(logit, n_iters):
         T = T / torch.sum(T, dim=-2, keepdim=True)
     return T
 
-def Hungarian(logit):
-    logit_np = logit.detach().cpu().numpy()
-    row, col = linear_sum_assignment(logit_np)
-    P = torch.zeros_like(logit)
-    P[row, col] = 1
-    return P
+def Hungarian(logits):
+    logits_np = logits.detach().cpu().numpy()
+    batch_size, n, _ = logits.shape
+    
+    P_list = []
+
+    for i in range(batch_size):
+        row, col = linear_sum_assignment(logits_np[i])
+        P = torch.zeros(n, n)
+        P[row, col] = 1
+        P_list.append(P)
+    return torch.stack(P_list).to(logits.device)
 
 def get_cyclic_matrix(num_nodes):
     matrix = torch.zeros(num_nodes, num_nodes)
