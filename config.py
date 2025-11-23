@@ -77,3 +77,47 @@ MAX_GRAD_NORM = 1.0     # 一般的なデフォルト値 (必要に応じて調�
 
 # デバイス設定
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
+
+
+if __name__ == "__main__":
+    
+    # 論文の表記と対応付けるための辞書
+    param_map = {
+        "NUM_NODES": "N (都市数)",
+        "INPUT_DIM": "入力次元",
+        "TRAIN_SIZE": "学習データ数",
+        "BATCH_SIZE": "バッチサイズ",
+        "HIDDEN_DIM": "隠れ層次元",
+        "NUM_LAYERS": "GNN層数",
+        "SCALE_S": "s (距離スケーリング)",
+        "SCALE_ALPHA": "α (ロジットスケーリング)",
+        "SINKHORN_ITER": "l (Sinkhorn反復)",
+        "TAU": "τ (温度)",
+        "NOISE_SCALE": "γ (ノイズスケール)",
+        "EPOCHS": "最大エポック数",
+        "LR": "LR (学習率)",
+        "WEIGHT_DECAY": "λ (Weight Decay)",
+        "OPTIMIZER": "Optimizer",
+        "DEVICE": "デバイス",
+    }
+    
+    print("=" * 35)
+    print(f" Structure As Search: TSP-{NUM_NODES} 設定 ")
+    print("=" * 35)
+
+    # configモジュール内の大文字変数を取得
+    config_vars = {k: v for k, v in globals().items() if k.isupper() and k not in ['USE_GRAD_CLIP', 'MAX_GRAD_NORM']}
+    
+    for var_name, description in param_map.items():
+        if var_name in config_vars:
+            # 論文の表記に合わせて出力
+            print(f"{description:<20}: {config_vars[var_name]}")
+
+    print("-" * 35)
+    print(f"{'Warmup期間':<20}: {WARMUP_EPOCHS} epochs")
+    print(f"{'Early Stopping Patience':<20}: {PATIENCE}")
+    print(f"{'勾配クリッピング':<20}: {'有効' if USE_GRAD_CLIP else '無効'}")
+    if USE_GRAD_CLIP:
+         print(f"{'最大勾配ノルム':<20}: {MAX_GRAD_NORM}")
+    print("=" * 35)
