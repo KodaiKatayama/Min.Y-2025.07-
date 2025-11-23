@@ -50,3 +50,22 @@ for epoch in range(EPOCHS):
         total_loss += loss.item()
         
     print(f"Epoch {epoch+1}: Loss = {total_loss / len(dataloader):.4f}")
+
+    with torch.no_grad():
+        # 1. バッチごと一括でハンガリアン法！ (マイナスをつけて最大値を探させる)
+        #    Pの形: [32, 20, 20]
+        P = Hungarian(-logits) 
+        
+        # 2. 距離の計算 (Lossの計算式とほぼ同じ！)
+        #    P @ V @ P.T
+        V_batch = V.unsqueeze(0)
+        hard_adj = torch.matmul(torch.matmul(P, V_batch), P.transpose(1, 2))
+        
+        #    距離行列Dとの内積をとる (バッチごとに合計)
+        #    dim=(1, 2) は「行列の縦と横をつぶして合計する」という意味
+        current_dist = torch.sum(distances * hard_adj, dim=(1, 2))
+        
+        #    バッチの平均をとる
+        mean_dist = current_dist.mean().item()
+        
+    print(f"Epoch {epoch+1}: Loss = {total_loss / len(dataloader):.4f}, Real Distance = {mean_dist:.4f}")
