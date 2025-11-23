@@ -22,11 +22,8 @@ dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
 
 model = TSPModel(input_dim=2, hidden_dim=128, num_nodes=NUM_NODES).to(DEVICE)
 optimizer = optim.Adam(model.parameters(), lr=LR)
-
-# 正解のリング行列 V を作る (GPUへ送る)
 V = get_cyclic_matrix(NUM_NODES).to(DEVICE)
 
-# 2. 学習ループ
 model.train()
 for epoch in range(EPOCHS):
     total_loss = 0
@@ -36,27 +33,17 @@ for epoch in range(EPOCHS):
         distances = batch['distance'].to(DEVICE)
         
         optimizer.zero_grad()
-        
+
         logits = model(points)
         
-        # (2) ガンベルノイズを加えて Sinkhorn で確率行列 T にする
-        #     式(8): (F + gamma * noise) / TAU
         noise = sample_gumbel(logits.shape).to(DEVICE)
         noisy_logits = (logits + GAMMA * noise) / TAU
         T = sinkhorn(noisy_logits, n_iters=SINKHORN_ITERS)
         
-        # (3) 損失関数の計算: Loss = <D, T V T^T>
-        #     まず "T V T^T" を計算 (ソフトな隣接行列を作る)
-        #     T(バッチ,N,N) @ V(N,N) @ T_transpose(バッチ,N,N)
-        #     ※ Vはバッチがないので unsqueeze(0) で (1,N,N) にして合わせる
         V_batch = V.unsqueeze(0) 
         soft_adj = torch.matmul(torch.matmul(T, V_batch), T.transpose(1, 2))
-        
-        #     距離行列 D との内積をとる (要素ごとの掛け算の合計)
-        #     論文式(5) [cite: 633]
         loss = torch.sum(distances * soft_adj) / BATCH_SIZE
         
-        # (4) 更新
         loss.backward()
         optimizer.step()
         
