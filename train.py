@@ -44,7 +44,7 @@ for epoch in range(EPOCHS):
         
         V_batch = V.unsqueeze(0) 
         soft_adj = torch.matmul(torch.matmul(T, V_batch), T.transpose(1, 2))
-        loss = torch.sum(distances * soft_adj) / BATCH_SIZE
+        loss = torch.sum(distances * soft_adj)
         
         loss.backward()
         optimizer.step()
@@ -56,10 +56,12 @@ for epoch in range(EPOCHS):
             P = Hungarian(-noisy_logits)
             V_batch = V.unsqueeze(0)
             hard_adj = torch.matmul(torch.matmul(P, V_batch), P.transpose(1, 2))
-            current_dist_batch = torch.sum(distances * hard_adj, dim=(1, 2))
-            total_real += current_dist_batch.sum().item()
-    # エポック中に累積したハード距離の平均（サンプルあたり）
+            real = torch.sum(distances * hard_adj)
+            total_real += real.item()
+
+    # エポック中に累積した損失と経路長の平均
     dataset_size = len(dataset)
+    mean_loss_dist = total_loss / dataset_size
     mean_real_dist = total_real / dataset_size
 
-    print(f"Epoch {epoch+1}: Loss = {total_loss / len(dataloader):.4f}, Real Distance = {mean_real_dist:.4f}")
+    print(f"Epoch {epoch+1}: Loss = {mean_loss_dist:.4f}, Real Distance = {mean_real_dist:.4f}")
